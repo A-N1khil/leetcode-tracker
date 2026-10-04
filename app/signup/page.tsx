@@ -1,7 +1,7 @@
 "use client";
 
+import { GalleryVerticalEndIcon } from "lucide-react";
 import { SignupForm } from "@/components/signup-form";
-import { Brain } from "lucide-react";
 
 export default function SignupPage() {
   return (
@@ -9,9 +9,9 @@ export default function SignupPage() {
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="#" className="flex items-center gap-2 self-center font-medium">
           <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Brain className="size-4" />
+            <GalleryVerticalEndIcon className="size-4" />
           </div>
-          LC Tracker.
+          Acme Inc.
         </a>
         <SignupForm />
       </div>
