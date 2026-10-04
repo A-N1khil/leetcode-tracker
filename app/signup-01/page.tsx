@@ -72,8 +72,6 @@ export default function SignupDetailedForm({ className, ...props }: React.Compon
 
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
-
-
   return (
     <>
       <Card {...props}>

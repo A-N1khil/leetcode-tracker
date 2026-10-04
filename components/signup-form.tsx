@@ -8,24 +8,53 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { z } from "zod";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, X } from "lucide-react";
+import { IconBrandGoogleFilled } from "@tabler/icons-react";
+
+const signUpSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required"),
+    email: z.email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters long"),
+    confirmPassword: z.string(),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type SignupFormValues = z.infer<typeof signUpSchema>;
 
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
-  const [rows, setRows] = useState<Awaited<ReturnType<typeof fetchTestRows>> | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signUpSchema),
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-  async function handleCreateAccount() {
-    setIsLoading(true);
-    setError(null);
-    setRows(null);
-    try {
-      setRows(await fetchTestRows());
-    } catch {
-      setError("Unable to fetch data. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+  const password = useWatch({ control, name: "password" });
+  const confirmPassword = useWatch({ control, name: "confirmPassword" });
+  const passwordsMatch = confirmPassword.length > 8 && confirmPassword === password;
+
+  async function handleCreateAccount() {}
+
+  async function handleGoogleSignup() {
+    // TODO: handle Google signup
   }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -34,45 +63,69 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
           <CardDescription>Enter your email below to create your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit(handleCreateAccount)} noValidate>
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input id="name" type="text" placeholder="John Doe" required />
+              <Field data-invalid={Boolean(errors.name)}>
+                <FieldLabel htmlFor="name">Name</FieldLabel>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  {...register("name")}
+                  aria-invalid={Boolean(errors.name)}
+                />
               </Field>
-              <Field>
+              <Field data-invalid={Boolean(errors.email)}>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  {...register("email")}
+                  aria-invalid={Boolean(errors.email)}
+                />
               </Field>
               <Field>
                 <Field className="grid grid-cols-2 gap-4">
-                  <Field>
+                  <Field data-invalid={Boolean(errors.password)}>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" type="password" required />
+                    <Input id="password" type="password" required {...register("password")} />
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.confirmPassword)}>
                     <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-                    <Input id="confirm-password" type="password" required />
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      required
+                      {...register("confirmPassword")}
+                      aria-invalid={Boolean(errors.confirmPassword)}
+                    />
+                    {confirmPassword.length > 0 && (
+                      <p
+                        className={passwordsMatch ? "text-sm text-green-600" : "text-sm text-destructive"}
+                        role="status"
+                      >
+                        {passwordsMatch ? (
+                          <Check className="inline size-4" aria-hidden="true" />
+                        ) : (
+                          <X className="inline size-4" aria-hidden="true" />
+                        )}{" "}
+                        {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+                      </p>
+                    )}
                   </Field>
                 </Field>
                 <FieldDescription>Must be at least 8 characters long.</FieldDescription>
               </Field>
               <Field>
-                <Button type="button" onClick={handleCreateAccount} disabled={isLoading}>
-                  {isLoading ? "Loading…" : "Create Account"}
+                <Button type="submit" disabled={!isValid || isSubmitting}>
+                  Create Account
                 </Button>
-                {error && <p role="alert">{error}</p>}
-                {rows !== null && (
-                  <div role="status">
-                    {rows.length === 0 ? (
-                      <p>No records found.</p>
-                    ) : (
-                      <pre className="overflow-auto rounded-md bg-muted p-3 text-sm">
-                        {JSON.stringify(rows, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                )}
+                <Button onClick={handleGoogleSignup} variant="outline" type="button">
+                  <IconBrandGoogleFilled className="inline size-4" aria-hidden="true" />
+                  Sign up with Google
+                </Button>
                 <FieldDescription className="text-center">
                   Already have an account? <a href="#">Sign in</a>
                 </FieldDescription>
