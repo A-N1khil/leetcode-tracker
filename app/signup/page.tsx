@@ -1,20 +1,23 @@
 "use client";
 
-import { GalleryVerticalEndIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { IconBrandLeetcode } from "@tabler/icons-react";
 import { SignupForm } from "@/components/signup-form";
 
-export function SignupPage() {
-  const router = useRouter();
+export type SignUpUser = {
+  name: string;
+  email: string;
+  password: string;
+};
 
+export default function SignupPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="#" className="flex items-center gap-2 self-center font-medium">
           <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <GalleryVerticalEndIcon className="size-4" />
+            <IconBrandLeetcode className="size-4" />
           </div>
-          Acme Inc.
+          LC Tracker.
         </a>
         <SignupForm />
       </div>
