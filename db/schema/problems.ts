@@ -12,9 +12,9 @@ export const difficulty = pgEnum("difficulty", ["Easy", "Medium", "Hard"]);
 export const problemsTable = snakeCase.table("problems", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   lcID: integer().unique().notNull(),
-  title: varchar({ length: 255 }),
-  titleSlug: varchar({ length: 255 }),
+  title: varchar({ length: 255 }).notNull(),
+  titleSlug: varchar({ length: 255 }).notNull(),
   url: text().unique(),
   topics: text().array(),
-  difficulty: difficulty(),
+  difficulty: difficulty().notNull(),
 });

@@ -9,8 +9,7 @@ import { leetCodeFetchService } from "@/services/leetcode/leetcode-fetch-service
 
 import { delay } from "@/lib/utils";
 import data from "./data.json";
-import { useEffect, useState } from "react";
-import { Problem } from "@/models/problem-model";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,9 +22,9 @@ import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
 import { IconCircleCheck, IconHourglassEmpty, IconPlaystationX } from "@tabler/icons-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { insertProblems } from "@/services/actions/leetcode-actions";
 
 type RefreshStatus = "Loading" | "Done" | "Waiting" | "Error";
-type FetchProblemStatus = "Need" | "Done" | "Retry";
 
 const refreshStatusIconMap = {
   Loading: <Spinner />,
@@ -38,36 +37,54 @@ export default function Page() {
   const [fetchStatus, setFetchStatus] = useState<RefreshStatus>("Waiting");
   const [dbRefreshStatus, setDBRefreshStatus] = useState<RefreshStatus>("Waiting");
   const [showDialog, setShowDialog] = useState<boolean>(true);
-  const [fetchProblems, setFetchProblems] = useState<FetchProblemStatus>("Need");
+  const hasStarted = useRef(false);
+  const refreshInProgress = useRef(false);
+
+  const refreshProblems = useCallback(async () => {
+    if (refreshInProgress.current) return;
+    refreshInProgress.current = true;
+    setFetchStatus("Waiting");
+    setDBRefreshStatus("Waiting");
+
+    let stage: "fetch" | "insert" = "fetch";
+    try {
+      await delay(1000);
+      setShowDialog(true);
+
+      await delay(1000);
+      setFetchStatus("Loading");
+
+      const problems = await leetCodeFetchService.getProblems();
+      if (!Array.isArray(problems) || problems.length === 0) {
+        throw new Error("LeetCode API returned no problems");
+      }
+      setFetchStatus("Done");
+
+      stage = "insert";
+      setDBRefreshStatus("Loading");
+      const success = await insertProblems(problems);
+      setDBRefreshStatus(success ? "Done" : "Error");
+    } catch (error) {
+      if (stage === "fetch") {
+        setFetchStatus("Error");
+      } else {
+        setDBRefreshStatus("Error");
+      }
+      console.error(`Failed to ${stage} LeetCode problems`, error);
+    } finally {
+      refreshInProgress.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchProblemsFunc = async () => {
-      try {
-        await delay(1000);
-        setShowDialog(true);
+    // React Strict Mode replays mount effects in development.
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+    void refreshProblems();
+  }, [refreshProblems]);
 
-        await delay(1000);
-        setFetchStatus("Loading");
-
-        await delay(3000);
-        setFetchStatus("Done");
-        setDBRefreshStatus("Loading");
-
-        await delay(3000);
-        setDBRefreshStatus("Error");
-
-        setFetchProblems("Done");
-      } catch (error) {
-        setFetchStatus("Error");
-        setDBRefreshStatus("Error");
-      } finally {
-        // setShowDialog(false);
-      }
-    };
-    if (["Need", "Retry"].includes(fetchProblems)) {
-      void fetchProblemsFunc();
-    }
-  }, [fetchProblems]);
+  const refreshFailed = fetchStatus === "Error" || dbRefreshStatus === "Error";
+  const refreshFinished = refreshFailed || dbRefreshStatus === "Done";
 
   return (
     <>
@@ -119,13 +136,13 @@ export default function Page() {
               </Marker>
             </DialogDescription>
           </DialogHeader>
-          {["Done", "Error"].includes(fetchStatus) && ["Done", "Error"].includes(dbRefreshStatus) && (
+          {refreshFinished && (
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowDialog(false)}>
                 Close
               </Button>
-              {dbRefreshStatus === "Error" && (
-                <Button variant="destructive" onClick={() => setFetchProblems("Retry")}>
+              {refreshFailed && (
+                <Button variant="destructive" onClick={() => void refreshProblems()}>
                   Retry
                 </Button>
               )}
