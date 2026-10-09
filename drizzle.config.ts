@@ -8,7 +8,7 @@ if (!url) throw new Error("Database connection URL is missing");
 
 export default defineConfig({
   out: "./drizzle",
-  schema: "./db/schema.ts",
+  schema: "./db/schema",
   dialect: "postgresql",
   dbCredentials: {
     url,
