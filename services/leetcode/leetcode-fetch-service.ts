@@ -1,63 +1,86 @@
 "use client";
 
-import type { Problem } from "@/models/problem-model";
+import type { Problem } from "@/models/leetcode/problem-model";
+import { APIContributionResponse } from "@/models/leetcode/contribution-model";
 
 interface ApiProblem {
-  id: string;
-  title: string;
-  title_slug: string;
-  url: string;
-  difficulty: string;
-  topic_tags: string[];
+	id: string;
+	title: string;
+	title_slug: string;
+	url: string;
+	difficulty: string;
+	topic_tags: string[];
 }
 
 export class LeetCodeFetchService {
-  public readonly baseUrl: string;
+	public readonly baseUrl: string;
 
-  constructor(baseUrl: string = "https://leetcode-api-pied.vercel.app") {
-    console.log("Base URl from environment:", process.env.LEETCODE_API_URL);
-    this.baseUrl = baseUrl.replace(/\/$/, "");
-    console.log(`LeetCodeFetchService initialized with base URL: ${this.baseUrl}`);
-  }
+	constructor(baseUrl: string = "https://leetcode-api-pied.vercel.app") {
+		console.log("Base URl from environment:", process.env.LEETCODE_API_URL);
+		this.baseUrl = baseUrl.replace(/\/$/, "");
+		console.log(
+			`LeetCodeFetchService initialized with base URL: ${this.baseUrl}`,
+		);
+	}
 
-  private buildUrl(path: string): string {
-    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-    return `${this.baseUrl}${normalizedPath}`;
-  }
+	private buildUrl(path: string): string {
+		const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+		return `${this.baseUrl}${normalizedPath}`;
+	}
 
-  private async request<T>(path: string, options: RequestInit): Promise<T> {
-    const response = await fetch(this.buildUrl(path), {
-      ...options,
-      headers: {
-        Accept: "application/json",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`LeetCode API request failed: ${response.status}`);
-    }
-    return response.json() as Promise<T>;
-  }
+	private async request<T>(path: string, options: RequestInit): Promise<T> {
+		const response = await fetch(this.buildUrl(path), {
+			...options,
+			headers: {
+				Accept: "application/json",
+				...(options.body ? { "Content-Type": "application/json" } : {}),
+				...options.headers,
+			},
+		});
+		if (!response.ok) {
+			throw new Error(`LeetCode API request failed: ${response.status}`);
+		}
+		return (await response.json()) as Promise<T>;
+	}
 
-  async getProblems(): Promise<Problem[]> {
-    const problems = await this.request<ApiProblem[]>("/problems", { method: "GET" });
-    if (!Array.isArray(problems)) throw new Error("Invalid LeetCode API response");
+	async getProblems(): Promise<Problem[]> {
+		const problems = await this.request<ApiProblem[]>("/problems", {
+			method: "GET",
+		});
 
-    return problems.map((problem) => {
-      const id = Number(problem.id);
-      if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid LeetCode problem ID");
+		if (!Array.isArray(problems)) {
+			throw new Error("Invalid LeetCode API response");
+		}
 
-      return {
-        id,
-        title: problem.title,
-        titleSlug: problem.title_slug,
-        url: problem.url,
-        difficulty: problem.difficulty,
-        topics: problem.topic_tags,
-      };
-    });
-  }
+		return problems.map((problem) => {
+			const id = Number(problem.id);
+			if (!Number.isSafeInteger(id) || id <= 0)
+				throw new Error("Invalid LeetCode problem ID");
+
+			return {
+				id,
+				title: problem.title,
+				titleSlug: problem.title_slug,
+				url: problem.url,
+				difficulty: problem.difficulty,
+				topics: problem.topic_tags,
+			};
+		});
+	}
+
+	async getCalendar(
+		username: string,
+		activeYear?: number,
+	): Promise<APIContributionResponse> {
+		const query: string = activeYear ? `?year=${activeYear}` : "";
+
+		return await this.request<APIContributionResponse>(
+			`/user/${encodeURIComponent(username)}/calendar${query}`,
+			{
+				method: "GET",
+			},
+		);
+	}
 }
 
 export const leetCodeFetchService = new LeetCodeFetchService();

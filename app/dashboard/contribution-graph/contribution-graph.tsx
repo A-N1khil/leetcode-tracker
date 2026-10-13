@@ -3,7 +3,16 @@
 import { leetCodeFetchService } from "@/services/leetcode/leetcode-fetch-service";
 import { useEffect, useState } from "react";
 import { type APIContributionResponse } from "@/models/leetcode/contribution-model";
-import { ContributionGraph } from "@/components/kibo-ui/contribution-graph";
+import {
+	type Activity,
+	ContributionGraph,
+	ContributionGraphBlock,
+	ContributionGraphCalendar,
+	ContributionGraphFooter,
+	ContributionGraphLegend,
+	ContributionGraphTotalCount,
+} from "@/components/kibo-ui/contribution-graph";
+import { formatISO } from "date-fns";
 
 type ContributionGraphProps = {
 	lcUsername: string;
@@ -19,8 +28,10 @@ export default function DashboardContributionGraph({
 		new Date().getFullYear(),
 	);
 	const [showSkeleton, setShowSkeleton] = useState<boolean>(true);
-	const [calendarData, setCalendarData] = useState<Record<string, number>>({});
+	const [calendarData, setCalendarData] = useState<Activity[]>([]);
 	const [emptyState, setEmptyState] = useState<EmptyState>("Empty");
+
+	const maxLevel: number = 4;
 
 	useEffect(() => {
 		let ignore = false;
@@ -40,8 +51,23 @@ export default function DashboardContributionGraph({
 				// setActiveYears for the dropdown
 				setActiveYears(calendarResponse.activeYears);
 
+				const maxActivity: number = Object.values(
+					calendarResponse.submissionCalendar,
+				).reduce((max, count) => Math.max(max, count), 0);
+				const activityData: Activity[] = Object.entries(
+					calendarResponse.submissionCalendar,
+				)
+					.filter((value) => value[1] > 0)
+					.map(([date, count]: [date: string, count: number]) => {
+						return {
+							date: formatISO(date, { representation: "date" }),
+							count: count,
+							level: Math.ceil(count / maxActivity) * maxLevel,
+						};
+					});
+
 				// set calendar data
-				setCalendarData(calendarResponse.submissionCalendar);
+				setCalendarData(activityData);
 			} catch {
 				// set EmptyState to be Error
 				if (!ignore) {
@@ -62,7 +88,21 @@ export default function DashboardContributionGraph({
 
 	return (
 		<>
-			<ContributionGraph data={calendarData}></ContributionGraph>
+			<ContributionGraph data={calendarData}>
+				<ContributionGraphCalendar>
+					{({ activity, dayIndex, weekIndex }) => (
+						<ContributionGraphBlock
+							activity={activity}
+							dayIndex={dayIndex}
+							weekIndex={weekIndex}
+						/>
+					)}
+				</ContributionGraphCalendar>
+				<ContributionGraphFooter>
+					<ContributionGraphTotalCount />
+					<ContributionGraphLegend />
+				</ContributionGraphFooter>
+			</ContributionGraph>
 		</>
 	);
 }
