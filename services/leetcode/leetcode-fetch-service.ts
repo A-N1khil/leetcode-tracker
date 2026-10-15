@@ -2,6 +2,7 @@
 
 import type { Problem } from "@/models/leetcode/problem-model";
 import { APIContributionResponse } from "@/models/leetcode/contribution-model";
+import { UserProfile } from "@/models/user-model";
 
 interface ApiProblem {
 	id: string;
@@ -37,10 +38,21 @@ export class LeetCodeFetchService {
 				...options.headers,
 			},
 		});
+
+		const data = await response.json();
+
+		if (typeof data === "object" && data !== null && "detail" in data) {
+			throw new Error(
+				typeof data.detail === "string"
+					? data.detail
+					: "LeetCode API returned an error",
+			);
+		}
+
 		if (!response.ok) {
 			throw new Error(`LeetCode API request failed: ${response.status}`);
 		}
-		return (await response.json()) as Promise<T>;
+		return data as T;
 	}
 
 	async getProblems(): Promise<Problem[]> {
@@ -80,6 +92,12 @@ export class LeetCodeFetchService {
 				method: "GET",
 			},
 		);
+	}
+
+	async getUserProfile(username: string): Promise<UserProfile> {
+		return await this.request<UserProfile>(`/user/${encodeURIComponent(username)}`, {
+			method: "GET",
+		});
 	}
 }
 
