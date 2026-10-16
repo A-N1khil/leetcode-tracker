@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
+import type { NeonUser } from "@/contexts/user-context";
 import {
   Sidebar,
   SidebarContent,
@@ -17,11 +18,6 @@ import { LayoutDashboardIcon, ListIcon, ChartBarIcon, UsersIcon, CommandIcon } f
 import { IconTags } from "@tabler/icons-react";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -50,7 +46,7 @@ const data = {
     },
   ],
 };
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: NeonUser | null }) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -67,7 +63,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        {user && (
+          <NavUser user={{ name: user.name, email: user.email, avatar: user.image ?? "" }} />
+        )}
       </SidebarFooter>
     </Sidebar>
   );
