@@ -4,6 +4,8 @@ import type { Problem } from "@/models/leetcode/problem-model";
 import { db } from "@/index";
 import { difficulty, problemsTable } from "@/db/schema/problems";
 import { handleErrorWithBooleanReturn } from "@/services/actions/post-action";
+import { userProfileTable } from "@/db/schema/user-profile-table";
+import { eq } from "drizzle-orm";
 
 export const insertProblems = async (problems: Problem[]): Promise<boolean> => {
 	try {
@@ -54,4 +56,17 @@ export const insertProblems = async (problems: Problem[]): Promise<boolean> => {
 		handleErrorWithBooleanReturn(error);
 		return false;
 	}
+};
+
+export const fetchUsernameFromEmail = async (
+	email: string,
+): Promise<{ username: string }> => {
+	const userRecord = await db
+		.select({
+			username: userProfileTable.username,
+		})
+		.from(userProfileTable)
+		.where(eq(userProfileTable.email, email));
+
+	return userRecord[0];
 };
