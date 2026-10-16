@@ -48,6 +48,11 @@ import {
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ContributionGraphProps = {
 	lcUsername: string;
@@ -76,12 +81,22 @@ export default function DashboardContributionGraph({
 	const sortedDates = calendarData.map(({ date }) => date).sort();
 	const firstDate = sortedDates[0];
 	const lastDate = sortedDates[sortedDates.length - 1];
-	const numberOfWeeks = firstDate && lastDate
-		? Math.ceil((differenceInCalendarDays(parseISO(lastDate), parseISO(firstDate)) + 1 + parseISO(firstDate).getDay()) / 7)
-		: 0;
-	const blockSize = graphWidth > 0 && numberOfWeeks > 0
-		? Math.max(1, (graphWidth - (numberOfWeeks - 1) * blockMargin) / numberOfWeeks)
-		: 12;
+	const numberOfWeeks =
+		firstDate && lastDate
+			? Math.ceil(
+					(differenceInCalendarDays(parseISO(lastDate), parseISO(firstDate)) +
+						1 +
+						parseISO(firstDate).getDay()) /
+						7,
+				)
+			: 0;
+	const blockSize =
+		graphWidth > 0 && numberOfWeeks > 0
+			? Math.max(
+					1,
+					(graphWidth - (numberOfWeeks - 1) * blockMargin) / numberOfWeeks,
+				)
+			: 12;
 
 	useEffect(() => {
 		const container = graphContainerRef.current;
@@ -97,8 +112,7 @@ export default function DashboardContributionGraph({
 	const router = useRouter();
 
 	useEffect(() => {
-		let ignore = false;
-
+		let ignore: boolean = false;
 		function buildCalendarData(
 			submissionCalendar: Record<string, number>,
 		): Activity[] {
@@ -161,19 +175,20 @@ export default function DashboardContributionGraph({
 
 				// setActiveYears for the dropdown
 				const activeYearDropdownData: { label: string; value: number }[] = [];
-				calendarResponse.activeYears.map((value: number) => {
-					activeYearDropdownData.push({
-						label: value.toString(),
-						value: value,
+				calendarResponse.activeYears
+					.sort((a, b) => b - a)
+					.map((value: number) => {
+						activeYearDropdownData.push({
+							label: value.toString(),
+							value: value,
+						});
 					});
-				});
 				setActiveYears(activeYearDropdownData);
 
 				// set calendar data
 				const activities = buildCalendarData(
 					calendarResponse.submissionCalendar,
 				);
-				console.log(activities);
 				setCalendarData(activities);
 
 				// show calendar
@@ -295,17 +310,26 @@ export default function DashboardContributionGraph({
 								>
 									<ContributionGraphCalendar>
 										{({ activity, dayIndex, weekIndex }) => (
-											<ContributionGraphBlock
-												activity={activity}
-												dayIndex={dayIndex}
-												weekIndex={weekIndex}
-												className={cn(
-													'data-[level="1"]:fill-[#9be9a8] dark:data-[level="1"]:fill-[#0e4429]',
-													'data-[level="2"]:fill-[#40c463] dark:data-[level="2"]:fill-[#006d32]',
-													'data-[level="3"]:fill-[#30a14e] dark:data-[level="3"]:fill-[#26a641]',
-													'data-[level="4"]:fill-[#216e39] dark:data-[level="4"]:fill-[#39d353]',
-												)}
-											/>
+											<Tooltip>
+												<TooltipTrigger render={<g tabIndex={0} />}>
+													<ContributionGraphBlock
+														activity={activity}
+														dayIndex={dayIndex}
+														weekIndex={weekIndex}
+														className={cn(
+															'data-[level="1"]:fill-[#9be9a8] dark:data-[level="1"]:fill-[#0e4429]',
+															'data-[level="2"]:fill-[#40c463] dark:data-[level="2"]:fill-[#006d32]',
+															'data-[level="3"]:fill-[#30a14e] dark:data-[level="3"]:fill-[#26a641]',
+															'data-[level="4"]:fill-[#216e39] dark:data-[level="4"]:fill-[#39d353]',
+															"cursor-pointer",
+														)}
+													/>
+												</TooltipTrigger>
+												<TooltipContent>
+													<p className={"font-semibold"}>{activity.date}</p>
+													<p>{activity.count} contributions</p>
+												</TooltipContent>
+											</Tooltip>
 										)}
 									</ContributionGraphCalendar>
 									<ContributionGraphFooter>
